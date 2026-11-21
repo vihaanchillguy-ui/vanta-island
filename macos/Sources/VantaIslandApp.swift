@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import UserNotifications
+import Combine
 
 @main
 struct VantaIslandApp: App {
@@ -10,6 +10,7 @@ struct VantaIslandApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: NSPanel?
+    private var statusItem: NSStatusItem?
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         let view = IslandView { [weak self] expanded in self?.resizePanel(expanded: expanded) }
@@ -27,9 +28,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         p.hidesOnDeactivate = false
         p.isMovableByWindowBackground = true
         panel = p
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.button?.title = "V"
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Show Vanta Island", action: #selector(showIsland), keyEquivalent: "s"))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Quit Vanta Island", action: #selector(quitApp), keyEquivalent: "q"))
+        item.menu = menu
+        statusItem = item
         positionPanel(expanded: false)
         p.orderFrontRegardless()
     }
+    @objc private func showIsland() { panel?.orderFrontRegardless() }
+    @objc private func quitApp() { NSApp.terminate(nil) }
     private func resizePanel(expanded: Bool) {
         guard let p = panel else { return }
         p.setContentSize(NSSize(width: expanded ? 430 : 236, height: expanded ? 172 : 54))
@@ -160,10 +171,9 @@ enum BatteryReader {
             try p.run()
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             let output = String(decoding: data, as: UTF8.self)
-            let percent = output.components(separatedBy: CharacterSet(charactersIn: "0123456789").inverted)
-                .first(where: { !$0.isEmpty }) ?? "?"
+            let percent = output.range(of: #"\\d+%"#, options: .regularExpression).map { String(output[$0]) } ?? "?"
             let state = output.contains("AC Power") ? "Charging" : "On battery"
-            return "\(percent)% · \(state)"
+            return "\(percent) · \(state)"
         } catch { return "Battery status unavailable" }
     }
 }
