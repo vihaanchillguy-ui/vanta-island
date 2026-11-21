@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08090d"><title>Vanta Island</title>
+<style>
+:root{color-scheme:dark;--bg:#08090d;--panel:rgba(22,24,32,.78);--line:rgba(255,255,255,.09);--muted:#9296a5;--text:#f7f7fb;--accent:#a78bfa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;overflow-x:hidden}
+.wallpaper{position:fixed;inset:0;z-index:-2;background:radial-gradient(ellipse at 18% 18%,#33245e 0,transparent 38%),radial-gradient(ellipse at 82% 75%,#123e50 0,transparent 42%),linear-gradient(135deg,#090a11,#111322 55%,#08090d);overflow:hidden}
+.wallpaper:before,.wallpaper:after{content:"";position:absolute;width:55vw;height:55vw;border-radius:50%;filter:blur(75px);opacity:.24;animation:float 18s ease-in-out infinite alternate;background:#8157dc;top:-20%;left:-10%}.wallpaper:after{background:#1b9b9b;left:auto;top:48%;right:-18%;animation-duration:23s}
+@keyframes float{to{transform:translate(18vw,14vh) scale(1.25)}}
+.topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;border-bottom:1px solid var(--line);background:rgba(5,6,10,.28);backdrop-filter:blur(22px)}
+.brand{display:flex;gap:11px;align-items:center;font-weight:750;letter-spacing:-.4px}.logo{width:29px;height:29px;border-radius:10px;background:linear-gradient(140deg,#c4b5fd,#6d55cf);display:grid;place-items:center;color:#14101f;font-weight:900}
+.status{color:var(--muted);font-size:12px;display:flex;gap:16px;align-items:center}.dot{display:inline-block;width:7px;height:7px;background:#5ee0a0;border-radius:50%;margin-right:6px;box-shadow:0 0 12px #5ee0a0}
+main{width:min(1100px,90vw);margin:0 auto;padding:55px 0 80px}.eyebrow{text-transform:uppercase;letter-spacing:2.5px;color:#b7a7ef;font-size:10px;font-weight:800}
+h1{font-size:clamp(32px,5vw,52px);letter-spacing:-2.5px;line-height:1.04;margin:12px 0}.sub{color:#a5a7b4;max-width:580px;font-size:15px}
+.island-stage{height:230px;display:flex;justify-content:center;align-items:flex-start;padding-top:36px;position:relative}
+.island{width:190px;min-height:52px;border-radius:32px;background:#030304;border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 65px #0009,0 0 0 1px #ffffff08;display:flex;align-items:center;justify-content:center;padding:10px 15px;gap:10px;cursor:pointer;transition:width .45s cubic-bezier(.2,.8,.2,1),min-height .45s,border-radius .3s;position:relative;z-index:2}
+.island:hover{transform:translateY(-2px)}.island.expanded{width:min(490px,90vw);min-height:128px;border-radius:27px;align-items:flex-start;justify-content:space-between;padding:17px 20px}
+.island-idle{width:7px;height:7px;border-radius:50%;background:#8f7aff;box-shadow:0 0 12px #8f7aff}.island-label{font-size:12px;font-weight:650;color:#d6d3df}.island-content{display:none;width:100%}.expanded .island-content{display:block}.expanded .island-collapsed{display:none}
+.track{display:flex;align-items:center;gap:13px}.cover{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#f0abfc,#6153b9 55%,#111827);display:grid;place-items:center;font-size:20px}.track-info{flex:1}.track-info b{display:block;font-size:13px}.track-info span{font-size:11px;color:#9c9daa}.controls{display:flex;gap:13px;align-items:center;font-size:18px}.controls button{background:none;border:0;color:white;cursor:pointer;font-size:18px}.progress{height:3px;background:#353541;border-radius:5px;margin-top:14px;overflow:hidden}.progress i{display:block;width:34%;height:100%;background:#c4b5fd}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;backdrop-filter:blur(20px);box-shadow:0 15px 45px #0002}.card h3{font-size:13px;margin:0 0 12px;color:#c7c5d1}.big{font-size:27px;font-weight:750;letter-spacing:-1px}.small{font-size:11px;color:var(--muted);margin-top:4px}.card-head{display:flex;justify-content:space-between;align-items:center}.icon{width:32px;height:32px;border-radius:11px;background:#ffffff0d;display:grid;place-items:center}
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:35px 0 14px}.section-title h2{font-size:17px;margin:0;letter-spacing:-.4px}.section-title span{font-size:11px;color:var(--muted)}
+.wallpapers{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.wall{height:105px;border-radius:15px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden}.wall.active{border-color:#c4b5fd}.wall span{position:absolute;bottom:9px;left:11px;font-size:11px;font-weight:700;text-shadow:0 2px 8px #000}.w1{background:radial-gradient(circle at 25% 30%,#c084fc,#3c2876 40%,#090b1a)}.w2{background:linear-gradient(135deg,#032d37,#16a6a0,#102c43)}.w3{background:radial-gradient(ellipse at 70% 20%,#f5b36c,#9c426a 38%,#251638)}.w4{background:linear-gradient(135deg,#161b2d,#53627b,#10121c)}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:12px}.setting{display:flex;align-items:center;justify-content:space-between;gap:12px}.setting b{font-size:12px}.setting small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.switch{width:39px;height:22px;border-radius:20px;border:0;background:#41424e;padding:3px;cursor:pointer;transition:.2s}.switch:after{content:"";display:block;width:16px;height:16px;border-radius:50%;background:white;transition:.2s}.switch.on{background:#8b70e8}.switch.on:after{transform:translateX(17px)}
+footer{text-align:center;color:#727583;font-size:11px;margin-top:45px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,20px);opacity:0;background:#22232d;border:1px solid var(--line);padding:10px 15px;border-radius:12px;transition:.25s;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:760px){main{padding-top:38px}.grid{grid-template-columns:1fr 1fr}.grid .card:last-child{grid-column:span 2}.wallpapers{grid-template-columns:1fr 1fr}.settings{grid-template-columns:1fr}.status .hide{display:none}}
+</style>
+</head>
+<body>
+<div class="wallpaper" id="background"></div>
+<header class="topbar"><div class="brand"><div class="logo">V</div>VANTA ISLAND</div><div class="status"><span><i class="dot"></i>System preview</span><span class="hide" id="date"></span><span id="clock">--:--</span></div></header>
+<main>
+<div class="eyebrow">A little more life on your desktop</div>
+<h1>Your Mac, with a<br>Dynamic Island.</h1>
+<p class="sub">A customisable desktop companion with a playful floating island, animated backgrounds and quick-glance widgets. This is the interactive browser preview.</p>
+<div class="island-stage"><div class="island" id="island" role="button" tabindex="0" aria-label="Expand Dynamic Island">
+<div class="island-collapsed"><span class="island-idle"></span><span class="island-label">Vanta Island</span></div>
+<div class="island-content"><div class="card-head"><span style="font-size:10px;color:#a8a5b5;letter-spacing:1.3px;font-weight:800">NOW PLAYING</span><span style="font-size:10px;color:#888">DEMO PLAYER</span></div><div class="track" style="margin-top:12px"><div class="cover">♫</div><div class="track-info"><b id="song">Midnight City</b><span id="artist">M83 · Hurry Up, We're Dreaming</span></div><div class="controls"><button id="prev" aria-label="Previous">‹</button><button id="play" aria-label="Play or pause">▶</button><button id="next" aria-label="Next">›</button></div></div><div class="progress"><i id="progress"></i></div></div></div></div>
+<div class="grid">
+<div class="card"><div class="card-head"><h3>Battery</h3><span class="icon">▰</span></div><div class="big" id="battery">--%</div><div class="small" id="battery-note">Browser battery access unavailable</div></div>
+<div class="card"><div class="card-head"><h3>Local time</h3><span class="icon">◷</span></div><div class="big" id="time-card">--:--</div><div class="small" id="day-card">Your current time</div></div>
+<div class="card"><div class="card-head"><h3>Island status</h3><span class="icon">◉</span></div><div class="big" id="island-state">Ready</div><div class="small">Tap the floating island to expand it</div></div>
+</div>
+<div class="section-title"><h2>Animated wallpapers</h2><span>Choose a look</span></div>
+<div class="wallpapers">
+<div class="wall w1 active" data-wall="0"><span>Violet Haze</span></div><div class="wall w2" data-wall="1"><span>Deep Current</span></div><div class="wall w3" data-wall="2"><span>Solar Bloom</span></div><div class="wall w4" data-wall="3"><span>Midnight</span></div>
+</div>
+<div class="section-title"><h2>Quick settings</h2><span>Changes apply instantly</span></div>
+<div class="settings">
+<div class="card setting"><div><b>Animated background</b><small>Slow ambient colour movement</small></div><button class="switch on" data-toggle="animation" aria-label="Toggle animated background"></button></div>
+<div class="card setting"><div><b>Island glow</b><small>Subtle purple edge lighting</small></div><button class="switch on" data-toggle="glow" aria-label="Toggle island glow"></button></div>
+<div class="card setting"><div><b>Compact island</b><small>Keep the floating pill smaller</small></div><button class="switch" data-toggle="compact" aria-label="Toggle compact island"></button></div>
+<div class="card setting"><div><b>24-hour clock</b><small>Use 24-hour time display</small></div><button class="switch on" data-toggle="24h" aria-label="Toggle 24 hour clock"></button></div>
+</div>
+<footer>VANTA ISLAND · WEB PREVIEW · MADE FOR macOS</footer>
+</main><div class="toast" id="toast">Updated</div>
+<script>
+const $=s=>document.querySelector(s);let expanded=false,playing=false,songIndex=0;
+const songs=[["Midnight City","M83 · Hurry Up, We're Dreaming"],["Sunset Lover","Petit Biscuit · Presence"],["A Moment Apart","ODESZA · A Moment Apart"]];
+function notify(t){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.classList.remove("show"),1800)}
+function updateClock(){const now=new Date(),fmt=localStorage.getItem("vanta-24h")==="off"?{hour:"numeric",minute:"2-digit"}:{hour:"2-digit",minute:"2-digit",hour12:false};$("#clock").textContent=now.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});$("#time-card").textContent=now.toLocaleTimeString([],{...fmt});$("#date").textContent=now.toLocaleDateString([],{weekday:"short",day:"numeric",month:"short"});$("#day-card").textContent=now.toLocaleDateString([],{weekday:"long",day:"numeric",month:"long"})}
+setInterval(updateClock,1000);updateClock();
+const island=$("#island");function toggleIsland(){expanded=!expanded;island.classList.toggle("expanded",expanded);$("#island-state").textContent=expanded?"Expanded":"Ready"}island.addEventListener("click",toggleIsland);island.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggleIsland()}});
+function showSong(){ $("#song").textContent=songs[songIndex][0];$("#artist").textContent=songs[songIndex][1] }$("#play").onclick=e=>{e.stopPropagation();playing=!playing;$("#play").textContent=playing?"Ⅱ":"▶";$("#progress").style.width=playing?"58%":"34%";notify(playing?"Demo playback started":"Playback paused")};
+$("#next").onclick=e=>{e.stopPropagation();songIndex=(songIndex+1)%songs.length;showSong();notify("Track changed")};$("#prev").onclick=e=>{e.stopPropagation();songIndex=(songIndex+2)%songs.length;showSong();notify("Track changed")};
+const walls=["radial-gradient(ellipse at 18% 18%,#33245e 0,transparent 38%),radial-gradient(ellipse at 82% 75%,#123e50 0,transparent 42%),linear-gradient(135deg,#090a11,#111322 55%,#08090d)","radial-gradient(ellipse at 20% 25%,#087e83 0,transparent 42%),radial-gradient(ellipse at 80% 75%,#123c65 0,transparent 45%),linear-gradient(135deg,#031b24,#07121e)","radial-gradient(ellipse at 25% 20%,#c36b73 0,transparent 40%),radial-gradient(ellipse at 75% 75%,#e9a95f 0,transparent 45%),linear-gradient(135deg,#251638,#100e1c)","radial-gradient(ellipse at 20% 25%,#53627b 0,transparent 40%),linear-gradient(135deg,#161b2d,#08090d)"];
+document.querySelectorAll(".wall").forEach(el=>el.onclick=()=>{document.querySelectorAll(".wall").forEach(x=>x.classList.remove("active"));el.classList.add("active");$("#background").style.background=walls[+el.dataset.wall];notify("Wallpaper changed")});
+document.querySelectorAll(".switch").forEach(btn=>{const key=btn.dataset.toggle,saved=localStorage.getItem("vanta-"+key);if(saved==="off")btn.classList.remove("on");btn.onclick=()=>{btn.classList.toggle("on");const on=btn.classList.contains("on");localStorage.setItem("vanta-"+key,on?"on":"off");if(key==="animation")$("#background").style.setProperty("--motion",on?"1":"0"),$("#background").style.animation=on?"":"none";if(key==="glow")island.style.boxShadow=on?"0 18px 65px #0009,0 0 35px #8b70e833":"0 18px 65px #0009";if(key==="compact"){island.style.width=on?"150px":"";island.style.transform=on?"scale(.88)":""}if(key==="24h")updateClock();notify((on?"Enabled ":"Disabled ")+key)}}); 
+if(navigator.getBattery){navigator.getBattery().then(b=>{function battery(){const n=Math.round(b.level*100);$("#battery").textContent=n+"%";$("#battery-note").textContent=b.charging?"Charging":"Battery level reported by browser"}battery();b.addEventListener("levelchange",battery);b.addEventListener("chargingchange",battery)}).catch(()=>{});}else{$("#battery").textContent="N/A";$("#battery-note").textContent="This browser doesn't expose battery data"}
+</script>
+</body></html>
