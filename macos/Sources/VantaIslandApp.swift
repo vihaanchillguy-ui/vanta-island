@@ -34,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Show Vanta Island", action: #selector(showIsland), keyEquivalent: "s"))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit Vanta Island", action: #selector(quitApp), keyEquivalent: "q"))
+        menu.items.forEach { $0.target = self }
         item.menu = menu
         statusItem = item
         positionPanel(expanded: false)
