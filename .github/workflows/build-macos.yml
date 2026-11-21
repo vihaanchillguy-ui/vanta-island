@@ -1,0 +1,47 @@
+name: Build Vanta Island for macOS
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'macos/**'
+      - '.github/workflows/build-macos.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Build universal macOS app
+        run: |
+          set -e
+          mkdir -p build/VantaIsland.app/Contents/MacOS
+          mkdir -p build/VantaIsland.app/Contents/Resources
+          xcrun swiftc -O -parse-as-library -target arm64-apple-macos13.0 macos/Sources/VantaIslandApp.swift -framework SwiftUI -framework AppKit -o build/VantaIsland-arm64
+          xcrun swiftc -O -parse-as-library -target x86_64-apple-macos13.0 macos/Sources/VantaIslandApp.swift -framework SwiftUI -framework AppKit -o build/VantaIsland-x86_64
+          lipo -create build/VantaIsland-arm64 build/VantaIsland-x86_64 -output build/VantaIsland.app/Contents/MacOS/VantaIsland
+          cat > build/VantaIsland.app/Contents/Info.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>CFBundleExecutable</key><string>VantaIsland</string>
+          <key>CFBundleIdentifier</key><string>com.vantadesigns.vantaisland</string>
+          <key>CFBundleName</key><string>Vanta Island</string>
+          <key>CFBundlePackageType</key><string>APPL</string>
+          <key>CFBundleShortVersionString</key><string>0.3.0</string>
+          <key>LSMinimumSystemVersion</key><string>13.0</string>
+          <key>LSUIElement</key><true/>
+          <key>NSHighResolutionCapable</key><true/>
+          <key>NSPrincipalClass</key><string>NSApplication</string>
+          </dict></plist>
+          PLIST
+          printf 'APPL????' > build/VantaIsland.app/Contents/PkgInfo
+          codesign --force --deep --sign - build/VantaIsland.app
+          hdiutil create -volname "Vanta Island" -srcfolder build/VantaIsland.app -ov -format UDZO build/Vanta-Island-macOS.dmg
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vanta-Island-macOS
+          path: build/Vanta-Island-macOS.dmg
+          retention-days: 14
