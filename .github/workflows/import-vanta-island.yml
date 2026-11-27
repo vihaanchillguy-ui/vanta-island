@@ -57,6 +57,14 @@ jobs:
                                   'for p in (PROJECT_DIR / top).rglob("*"):')
           source = source.replace('z.write("/app/memory/PRD.md", "PRD.md")',
                                   'prd = PROJECT_DIR / "PRD.md"\n        if prd.exists():\n            z.write(prd, "PRD.md")')
+          source = source.replace(
+              '    if not prices:\n        raise HTTPException(500, "Price not configured")',
+              '    if not prices:\n        await asyncio.to_thread(setup_stripe_catalog)\n        prices = await asyncio.to_thread(lambda: stripe.Price.list(lookup_keys=[PLUS_LOOKUP], active=True, limit=1).data)\n    if not prices:\n        raise HTTPException(500, "Stripe price could not be configured")'
+          )
+          source = source.replace('allow_methods=["*"], allow_headers=["*"]',
+                                  'allow_methods=["*"], allow_headers=["*"]')
+          source = source.replace('allow_credentials=True,',
+                                  'allow_credentials=False,')
           server.write_text(source)
 
           api = root / "frontend/src/lib/api.js"
@@ -111,9 +119,8 @@ jobs:
             - type: web
               name: vanta-island-api
               runtime: python
-              rootDir: backend
-              buildCommand: pip install -r requirements.txt
-              startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+              buildCommand: pip install -r backend/requirements.txt
+              startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT
               healthCheckPath: /api/
               envVars:
                 - key: MONGO_URL
