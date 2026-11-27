@@ -1,0 +1,295 @@
+name: Import Vanta Island source
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'VantaIsland-complete.zip'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: vanta-island-source-import
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Expand uploaded source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f VantaIsland-complete.zip || { echo "Upload VantaIsland-complete.zip to the repository root first."; exit 1; }
+          mkdir -p /tmp/vanta-island-source
+          unzip -q VantaIsland-complete.zip -d /tmp/vanta-island-source
+          test -d /tmp/vanta-island-source/frontend
+          test -d /tmp/vanta-island-source/backend
+          test -d /tmp/vanta-island-source/macos/VantaIsland
+          rm -rf backend frontend macos PRD.md index.html
+          cp -a /tmp/vanta-island-source/. .
+          rm -f VantaIsland-complete.zip
+      - name: Make the project deployable
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path.cwd()
+          req = root / "backend/requirements.txt"
+          requirements = req.read_text()
+          for package in ("httpx>=0.27.0", "stripe>=11.0.0"):
+              if package.split(">=")[0] not in requirements:
+                  requirements += "\n" + package
+          req.write_text(requirements.rstrip() + "\n")
+
+          server = root / "backend/server.py"
+          source = server.read_text()
+          source = source.replace('MACOS_DIR = Path("/app/macos")',
+                                  'PROJECT_DIR = ROOT_DIR.parent\nMACOS_DIR = PROJECT_DIR / "macos" / "VantaIsland"')
+          source = source.replace('archive = "/tmp/VantaIsland-complete.zip"',
+                                  'archive = str(Path("/tmp") / "VantaIsland-complete.zip")')
+          source = source.replace('for p in Path("/app", top).rglob("*"):',
+                                  'for p in (PROJECT_DIR / top).rglob("*"):')
+          source = source.replace('z.write("/app/memory/PRD.md", "PRD.md")',
+                                  'prd = PROJECT_DIR / "PRD.md"\n        if prd.exists():\n            z.write(prd, "PRD.md")')
+          server.write_text(source)
+
+          api = root / "frontend/src/lib/api.js"
+          source = api.read_text()
+          source = source.replace(
+              'export const API = `${process.env.REACT_APP_BACKEND_URL}/api`;',
+              'export const API = `${(process.env.REACT_APP_BACKEND_URL || "").replace(/\\/$/, "")}/api`;'
+          )
+          source = source.replace(
+              'origin_url: window.location.origin',
+              'origin_url: `${window.location.origin}${window.location.pathname}#`'
+          )
+          api.write_text(source)
+
+          app = root / "frontend/src/App.js"
+          source = app.read_text().replace("BrowserRouter", "HashRouter")
+          app.write_text(source)
+
+          download = root / "frontend/src/components/vanta/Download.jsx"
+          if download.exists():
+              source = download.read_text().replace('src="/app-icon.jpg"',
+                  'src={`${process.env.PUBLIC_URL}/app-icon.jpg`}')
+              download.write_text(source)
+          PY
+
+          cat > .gitignore <<'EOF'
+          .DS_Store
+          .env
+          .env.*
+          !.env.example
+          **/__pycache__/
+          **/*.py[cod]
+          frontend/node_modules/
+          frontend/build/
+          macos/VantaIsland/.build/
+          macos/VantaIsland/build/
+          EOF
+
+          cat > .env.example <<'EOF'
+          # Backend settings
+          MONGO_URL=mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/?retryWrites=true&w=majority
+          DB_NAME=vanta_island
+          STRIPE_SECRET_KEY=sk_test_replace_me
+          STRIPE_WEBHOOK_SECRET=whsec_replace_me
+          CORS_ORIGINS=https://vihaanchillguy-ui.github.io
+          # Optional: enables additional premium wallpaper results
+          PEXELS_API_KEY=
+          EOF
+
+          cat > render.yaml <<'EOF'
+          services:
+            - type: web
+              name: vanta-island-api
+              runtime: python
+              rootDir: backend
+              buildCommand: pip install -r requirements.txt
+              startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+              healthCheckPath: /api/
+              envVars:
+                - key: MONGO_URL
+                  sync: false
+                - key: DB_NAME
+                  value: vanta_island
+                - key: STRIPE_SECRET_KEY
+                  sync: false
+                - key: STRIPE_WEBHOOK_SECRET
+                  sync: false
+                - key: CORS_ORIGINS
+                  value: https://vihaanchillguy-ui.github.io
+                - key: PEXELS_API_KEY
+                  sync: false
+          EOF
+
+          cat > README.md <<'EOF'
+          # Vanta Island
+
+          Vanta Island is a native macOS Dynamic Island-style app, with a React landing page and a FastAPI wallpaper/licensing API.
+
+          ## Project layout
+
+          - `macos/VantaIsland`: Swift Package and DMG build script (macOS 14+, Xcode 15+).
+          - `frontend`: React landing page, wallpaper gallery and Vanta Plus checkout pages.
+          - `backend`: FastAPI API for wallpapers, licenses, Stripe checkout and downloads.
+          - `PRD.md`: Product requirements and implementation notes.
+
+          ## macOS app
+
+          On a Mac running macOS 14 or later:
+
+          ```bash
+          cd macos/VantaIsland
+          chmod +x build_dmg.sh
+          ./build_dmg.sh
+          ```
+
+          The DMG is written to `macos/VantaIsland/build/`. GitHub Actions also builds it when macOS source changes; download the DMG from the workflow run's Artifacts section.
+
+          ## Backend deployment (Render)
+
+          Deploy using the included `render.yaml` blueprint. Create a MongoDB database and provide these environment variables in Render:
+
+          - `MONGO_URL`: MongoDB connection string.
+          - `DB_NAME`: database name (the blueprint defaults to `vanta_island`).
+          - `STRIPE_SECRET_KEY`: Stripe secret key.
+          - `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret.
+          - `CORS_ORIGINS`: frontend origin, without a trailing slash.
+          - `PEXELS_API_KEY`: optional; Mixkit catalog remains available without it.
+
+          Set the Stripe webhook endpoint to `https://YOUR-API-HOST/api/stripe/webhook` and subscribe to checkout completion/expiry and subscription deletion events. Use Stripe test keys while testing. Do not commit API keys or database credentials.
+
+          ## Website deployment (GitHub Pages)
+
+          In the repository settings, add the Actions variable `REACT_APP_BACKEND_URL` with the deployed backend base URL, for example `https://YOUR-API-HOST` (no trailing `/api`). The Pages workflow builds the React app and publishes it at:
+
+          `https://vihaanchillguy-ui.github.io/vanta-island/`
+
+          The site uses hash-based routes so payment return pages work on GitHub Pages.
+
+          ## Local website development
+
+          ```bash
+          cd frontend
+          cp .env.example .env.local
+          # Set REACT_APP_BACKEND_URL in .env.local
+          yarn install --frozen-lockfile
+          yarn start
+          ```
+
+          ## Notes
+
+          - The backend requires MongoDB and Stripe configuration to serve paid-license and checkout features.
+          - The native app build requires macOS and cannot be compiled on a Linux runner.
+          - Unsigned/ad-hoc macOS builds may require right-click → Open on first launch. Developer ID signing and notarization require your own Apple Developer credentials.
+          EOF
+
+          cat > frontend/.env.example <<'EOF'
+          REACT_APP_BACKEND_URL=http://localhost:8000
+          EOF
+
+          mkdir -p .github/workflows
+          rm -f .github/workflows/build-macos.yml
+          cat > .github/workflows/build-macos.yml <<'EOF'
+          name: Build Vanta Island for macOS
+          on:
+            workflow_dispatch:
+            push:
+              paths:
+                - 'macos/VantaIsland/**'
+                - '.github/workflows/build-macos.yml'
+          permissions:
+            contents: read
+          jobs:
+            build:
+              runs-on: macos-14
+              steps:
+                - uses: actions/checkout@v4
+                - name: Build universal DMG
+                  run: |
+                    cd macos/VantaIsland
+                    chmod +x build_dmg.sh
+                    ./build_dmg.sh
+                - uses: actions/upload-artifact@v4
+                  with:
+                    name: Vanta-Island-macOS
+                    path: macos/VantaIsland/build/*.dmg
+                    if-no-files-found: error
+                    retention-days: 30
+          EOF
+
+          cat > .github/workflows/deploy-pages.yml <<'EOF'
+          name: Deploy Vanta Island website
+          on:
+            workflow_dispatch:
+            push:
+              branches: [main]
+              paths:
+                - 'frontend/**'
+                - '.github/workflows/deploy-pages.yml'
+          permissions:
+            contents: read
+            pages: write
+            id-token: write
+          concurrency:
+            group: github-pages
+            cancel-in-progress: true
+          jobs:
+            build:
+              runs-on: ubuntu-latest
+              steps:
+                - uses: actions/checkout@v4
+                - uses: actions/configure-pages@v5
+                - uses: actions/setup-node@v4
+                  with:
+                    node-version: 20
+                    cache: yarn
+                    cache-dependency-path: frontend/yarn.lock
+                - name: Check backend URL configuration
+                  env:
+                    BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
+                  run: |
+                    if [ -z "$BACKEND_URL" ]; then
+                      echo "::error::Set the repository Actions variable REACT_APP_BACKEND_URL to your deployed API URL."
+                      exit 1
+                    fi
+                - name: Build React website
+                  working-directory: frontend
+                  env:
+                    CI: "false"
+                    PUBLIC_URL: /vanta-island
+                    REACT_APP_BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
+                  run: |
+                    yarn install --frozen-lockfile
+                    yarn build
+                - uses: actions/upload-pages-artifact@v3
+                  with:
+                    path: frontend/build
+            deploy:
+              environment:
+                name: github-pages
+                url: ${{ steps.deployment.outputs.page_url }}
+              runs-on: ubuntu-latest
+              needs: build
+              steps:
+                - id: deployment
+                  uses: actions/deploy-pages@v4
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No project changes to commit."
+          else
+            git commit -m "Import complete Vanta Island project and deployment setup"
+            git push
+          fi
